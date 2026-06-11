@@ -1,74 +1,115 @@
-# NipoVPN
+# NipoVPN GUI Client
 
-## Overview
+A modern desktop client for [NipoVPN](../README.md), built with **Python +
+PySide6 (Qt 6)**. It drives the NipoVPN C++ core in **agent** (client) mode:
+the core listens on a local port and forwards your obfuscated HTTP traffic to a
+NipoVPN server defined in `config.yaml`.
 
-NipoVPN is a powerful proxy tool designed to conceal your HTTP requests within fake HTTP requests. This program, written in C++, leverages the Boost library to handle networking functionalities efficiently.
-
+![dashboard](docs/screenshot-dashboard.png)
 
 ## Features
 
-  - HTTP Request Obfuscation: Hide your legitimate HTTP requests inside decoy requests to avoid detection.
-  - Boost Library Integration: Utilizes Boost for robust and reliable networking operations.
-  - High Performance: Optimized for speed and efficiency, ensuring minimal impact on request latency.
+- **Built-in base64 config import** – paste a base64 blob (YAML or JSON,
+  standard or URL-safe, padding optional) and the client decodes and loads it.
+- **Manual config import** – edit every field of the configuration in a form
+  (token, protocol, server IP/port, local listen port, fake URLs, TLS, …).
+- **Import core file** – point the client at the compiled `nipovpn` binary.
+- **Import / Export `config.yaml`** – load an existing config or save the
+  current one to disk. A base64 export is also available for easy sharing.
+- **Connection test** – TCP reachability + latency check against the server.
+- **Data sent / received** – live traffic counters and transfer rates while
+  connected (with an optional per-interface selector).
+- **Modern design** – dark theme, sidebar navigation, status cards and a live
+  log console.
 
+## Requirements
 
-## Usecases
+- Python 3.10+
+- The packages in [`requirements.txt`](requirements.txt) (`PySide6`, `psutil`,
+  `PyYAML`).
+- The NipoVPN core binary (build it from the repo root – see the main
+  [README](../README.md) and [build guide](../guides/BuildLinux.md)).
 
-### Bypass filtering
-This could help you to bypass the filtering in your country.
+## Install & Run
 
-![Filtering](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/archFilternet.png)
-
-### Hide your requests in the Internet
-If you want to hide your HTTP requests in the Internet, this proxy could help you.
-
-![Internet](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/archInternet.png)
-
-## Flow
-Here you can see the logical flow of a single request from first step to get the response
-![Flow](https://github.com/MortezaBashsiz/nipovpn/blob/main/files/pic/flow.png)
-
-
-## Contribution
-To contribute take a look at [contribution page](https://github.com/MortezaBashsiz/nipovpn/blob/main/CONTRIBUTING.md).
-
-## Build
-
-Build from source for [Linux](guides/BuildLinux.md)
-
-## Termux
-
-Build from source for [Linux](guides/InstallTermux.md)
-
-
-## Run
-
-#### Create directories
-Create the log directory and log file
 ```bash
-[~/nipovpn]>$ sudo mkdir /var/log/nipovpn/
-[~/nipovpn]>$ sudo touch /var/log/nipovpn/nipovpn.log 
+cd gui
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python main.py --icon /path/to/your-icon.png
 ```
 
-Run it
+If you do not pass `--icon`, the app looks for `app.ico` or `app.png` next to
+the launcher or inside an `assets/` folder in packaged builds.
+
+Put your icon file in `gui/assets/` as `app.ico` or `app.png` to make it the
+default icon for both development runs and packaged builds.
+
+## Usage
+
+1. Open **Configuration → Import core file** and select the compiled `nipovpn`
+   binary.
+2. Load a configuration via **Import / Export → Base64 Config Import**,
+   **Configuration → Import config.yaml**, or by filling in the form manually.
+   Click **Apply** to save your edits.
+3. (Optional) On the **Dashboard**, click **Test server reachability** to verify
+   the server is up.
+4. Click **Connect**. The client starts `nipovpn agent <config.yaml>` and the
+   dashboard shows live data sent/received and the session duration.
+5. Configure your browser/system to use the local proxy
+   (`agent.listenIp:agent.listenPort`, default `127.0.0.1:8080`).
+
+> **Note on traffic stats:** NipoVPN does not create a dedicated tunnel
+> interface, so throughput is measured from host network counters via `psutil`.
+> Use the **Traffic NIC** selector on the **Logs** page to attribute traffic to
+> a specific interface.
+
+## Development
+
 ```bash
-sudo build/core/nipovpn server nipovpn/etc/nipovpn/config.yaml
+cd gui
+pip install -r requirements-dev.txt
+QT_QPA_PLATFORM=offscreen python -m pytest
 ```
 
-### Package
+The non-UI logic (config model, base64 decoding, connection test, traffic
+monitor, formatting) is fully unit tested and Qt-free.
 
-#### Install
-Currently it is only available for debian-based Linuxes and fully tested on ubuntu 24.04
-You can simply download and install the package. To download it please visit the [releases page](https://github.com/MortezaBashsiz/nipovpn/tags) and get the latest release.
+## Desktop Builds
+
+The GUI is packaged with `PyInstaller`, so build it on each target operating
+system:
+
 ```bash
-[~]>$ sudo apt install ./nipovpn.deb
+cd gui
+pip install -r requirements-dev.txt
+python build_gui.py --onedir --icon assets/app.ico
 ```
 
-#### Run
-There are systemd services to manage the nipovpn process.
-`nipovpn-server.service` to manage as server.
-`nipovpn-agent.service` to manage as agent.
-```bash
-[~]>$ sudo systemctl start nipovpn-server.service
-[~]>$ cat /var/log/nipovpn/nipovpn.log
+- Windows produces `dist/nipovpn-gui/`.
+- Linux produces `dist/nipovpn-gui/`.
+- If you want to ship the core binary alongside the GUI, pass it with
+  `--core ../build/core/nipovpn` on Linux or `--core ..\\build\\core\\nipovpn.exe`
+  on Windows after building the core for that platform.
+- The GUI will also look for a bundled core binary next to the app at launch,
+  so a packaged bundle can start immediately when the binary is included.
+
+## Project layout
+
+```
+gui/
+├── main.py                     # launcher
+├── nipovpn_gui/
+│   ├── app.py                  # QApplication entry point + theme
+│   ├── config_model.py         # NipoConfig: YAML/base64 import & export
+│   ├── config_page.py          # manual configuration form
+│   ├── connection_test.py      # TCP reachability/latency test
+│   ├── traffic.py              # data sent/received monitor (psutil)
+│   ├── vpn_controller.py       # runs the core binary (QProcess)
+│   ├── main_window.py          # main window / pages
+│   ├── widgets.py              # reusable UI widgets
+│   ├── theme.py                # dark theme stylesheet
+│   └── utils.py                # formatting helpers
+└── tests/                      # pytest suite
 ```
