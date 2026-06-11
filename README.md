@@ -37,14 +37,8 @@ cd gui
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python main.py --icon /path/to/your-icon.png
+python main.py
 ```
-
-If you do not pass `--icon`, the app looks for `app.ico` or `app.png` next to
-the launcher or inside an `assets/` folder in packaged builds.
-
-Put your icon file in `gui/assets/` as `app.ico` or `app.png` to make it the
-default icon for both development runs and packaged builds.
 
 ## Usage
 
