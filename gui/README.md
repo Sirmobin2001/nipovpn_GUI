@@ -37,8 +37,14 @@ cd gui
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python main.py
+python main.py --icon /path/to/your-icon.png
 ```
+
+If you do not pass `--icon`, the app looks for `app.ico` or `app.png` next to
+the launcher or inside an `assets/` folder in packaged builds.
+
+Put your icon file in `gui/assets/` as `app.ico` or `app.png` to make it the
+default icon for both development runs and packaged builds.
 
 ## Usage
 
@@ -69,6 +75,25 @@ QT_QPA_PLATFORM=offscreen python -m pytest
 
 The non-UI logic (config model, base64 decoding, connection test, traffic
 monitor, formatting) is fully unit tested and Qt-free.
+
+## Desktop Builds
+
+The GUI is packaged with `PyInstaller`, so build it on each target operating
+system:
+
+```bash
+cd gui
+pip install -r requirements-dev.txt
+python build_gui.py --onedir --icon assets/app.ico
+```
+
+- Windows produces `dist/nipovpn-gui/`.
+- Linux produces `dist/nipovpn-gui/`.
+- If you want to ship the core binary alongside the GUI, pass it with
+  `--core ../build/core/nipovpn` on Linux or `--core ..\\build\\core\\nipovpn.exe`
+  on Windows after building the core for that platform.
+- The GUI will also look for a bundled core binary next to the app at launch,
+  so a packaged bundle can start immediately when the binary is included.
 
 ## Project layout
 

@@ -26,7 +26,7 @@ from .config_page import ConfigForm
 from .connection_test import tcp_check
 from .theme import COLORS
 from .traffic import TrafficMonitor, available_interfaces
-from .utils import format_bytes, format_duration, format_rate
+from .utils import bundled_core_path, format_bytes, format_duration, format_rate
 from .vpn_controller import VpnController, VpnState
 from .widgets import Card, StatCard, StatusPill, hline
 
@@ -486,6 +486,8 @@ class MainWindow(QWidget):
 
     def _restore_settings(self) -> None:
         core_path = self.settings.value("core_path", "", str)
+        if not core_path:
+            core_path = bundled_core_path()
         if core_path:
             self.controller.set_core_path(core_path)
             self.core_label.setText(f"Core binary: {core_path}")
